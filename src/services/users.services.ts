@@ -9,18 +9,24 @@ config()
 
 class UsersService {
   //viết hàm nhận vào user_id để bỏ vào payload tạo access token
-  SignAccessToken(user_id: string) {
+  private SignAccessToken(user_id: string) {
     return singToken({
       payload: { user_id, token_type: TokenType.AccessToken },
       options: { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_IN }
     })
   }
-  SignRefreshToken(user_id: string) {
+
+  private SignRefreshToken(user_id: string) {
     return singToken({
-      payload: { user_id, token_type: TokenType.AccessToken },
+      payload: { user_id, token_type: TokenType.RefreshToken },
       options: { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN }
     })
   }
+
+  private SignAccessAndRefreshToken(user_id: string) {
+    return Promise.all([this.SignAccessToken(user_id), this.SignRefreshToken(user_id)])
+  }
+
   async checkEmailExist(email: string) {
     const user = await databaseService.users.findOne({ email })
     return Boolean(user) //trả ra true false, ép kiểu cho user thành Boolean
@@ -37,12 +43,16 @@ class UsersService {
     )
     //Lấy user_id từ user mới tạo
     const user_id = result.insertedId.toString()
-    const [access_token, refresh_token] = await Promise.all([
-      this.SignAccessToken(user_id),
-      this.SignRefreshToken(user_id)
-    ])
+    const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id)
     return { access_token, refresh_token }
   }
+
+  async login(user_id: string) {
+    const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id)
+    return { access_token, refresh_token }
+  }
+  
+  
 }
 
 const usersService = new UsersService()
