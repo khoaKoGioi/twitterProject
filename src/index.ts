@@ -15,7 +15,6 @@ app.get('/', (req, res) => {
 
 app.use('/users', usersRouter)
 //localhost:3000/users/ giúp truy cập vào usersRouter
-//sau đó sẽ chạy 2 cái hàm trong usersRouter.use và log ra time tương ứng
 //localhost:3000 k chay qua middleware nao het
 app.use(defaultErrorHandle)
 app.listen(PORT, () => {
