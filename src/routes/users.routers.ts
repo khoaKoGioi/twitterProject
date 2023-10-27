@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { loginValidator, registerValidator } from '../middlewares/users.middlewares'
-import { loginController, registerController } from '../controllers/users.controller'
+import { accessTokenValidator, loginValidator, refreshTokenValidator, registerValidator } from '../middlewares/users.middlewares'
+import { loginController, logoutController, registerController } from '../controllers/users.controller'
 import { wrapAsync } from '../utils/handlers'
 const usersRouter = Router()
 
@@ -11,5 +11,12 @@ usersRouter.get('/login', loginValidator, wrapAsync(loginController))
 //oke rồi thì sẽ next qua tầng tiếp theo là loginController
 usersRouter.post('/register', registerValidator, wrapAsync(registerController))
 
-
+/*
+des: đăng xuất
+path: user/logout
+method: post
+headers: {Authorization: 'Bearer <access_token>'}
+body: {refresh_token: string}
+*/
+usersRouter.post('/logout', accessTokenValidator, refreshTokenValidator, wrapAsync(logoutController))
 export default usersRouter

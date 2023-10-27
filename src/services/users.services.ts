@@ -7,6 +7,7 @@ import { hashPassword } from '../utils/crypto'
 import { singToken } from '../utils/jwt'
 import databaseService from './database.services'
 import { config } from 'dotenv'
+import { USERS_MESSAGES } from '../constants/messages'
 config()
 
 class UsersService {
@@ -47,29 +48,31 @@ class UsersService {
     const user_id = result.insertedId.toString()
     const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id)
     //lưu refresh token vào db
-    await databaseService.refreshTokens.insertOne (
-      new RefreshToken ({
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
         token: refresh_token,
         user_id: new ObjectId(user_id)
       })
     )
     return { access_token, refresh_token }
-    
   }
 
   async login(user_id: string) {
     const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id)
     //lưu refresh_token vào db
-    await databaseService.refreshTokens.insertOne (
-      new RefreshToken ({
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
         token: refresh_token,
         user_id: new ObjectId(user_id)
       })
     )
     return { access_token, refresh_token }
   }
-  
-  
+
+  async logout(refresh_token: string) {
+    await databaseService.refreshTokens.deleteOne({token: refresh_token})
+    return {message: USERS_MESSAGES.LOGOUT_SUCCESS}
+  }
 }
 
 const usersService = new UsersService()
