@@ -10,4 +10,6 @@ usersRouter.get('/login', loginValidator, wrapAsync(loginController))
 //thì sẽ đi qua loginValidator, sẽ kiểm tra email, pass xem có tồn tại hay k
 //oke rồi thì sẽ next qua tầng tiếp theo là loginController
 usersRouter.post('/register', registerValidator, wrapAsync(registerController))
+
+
 export default usersRouter

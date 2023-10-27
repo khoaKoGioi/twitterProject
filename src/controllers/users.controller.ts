@@ -5,10 +5,12 @@ import User from '../models/schemas/User.schema'
 import usersService from '../services/users.services'
 import { ParamsDictionary } from 'express-serve-static-core'
 import { RegisterRequestBody } from '../models/requests/User.requests'
+import { ObjectId } from 'mongodb'
+import { USERS_MESSAGES } from '../constants/messages'
 export const loginController = async (req: Request, res: Response) => {
   //nếu đăng nhập thành công (loginValidator) thì sẽ vào được đây
-  const { user }: any = req
-  const user_id = user._id //OnjectId trong mongdoDB
+  const user = req.user as User //lấy user từ req
+  const user_id = user._id as ObjectId //OnjectId trong mongdoDB
   //server phải tạo ra access và refresh token để đưa cho client
   const result = await usersService.login(user_id.toString())
   return res.json({
@@ -20,7 +22,7 @@ export const loginController = async (req: Request, res: Response) => {
 export const registerController = async (req: Request<ParamsDictionary, any, RegisterRequestBody>, res: Response) => {
   const result = await usersService.register(req.body)
   return res.json({
-    message: 'Register succesfully',
+    message: USERS_MESSAGES.REGISTER_SUCCESS,
     result
   })
 }

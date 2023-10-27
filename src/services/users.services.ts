@@ -1,5 +1,7 @@
+import { ObjectId } from 'mongodb'
 import { TokenType } from '../constants/enums'
 import { RegisterRequestBody } from '../models/requests/User.requests'
+import RefreshToken from '../models/schemas/RefreshToken.schema'
 import User from '../models/schemas/User.schema'
 import { hashPassword } from '../utils/crypto'
 import { singToken } from '../utils/jwt'
@@ -44,11 +46,26 @@ class UsersService {
     //Lấy user_id từ user mới tạo
     const user_id = result.insertedId.toString()
     const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id)
+    //lưu refresh token vào db
+    await databaseService.refreshTokens.insertOne (
+      new RefreshToken ({
+        token: refresh_token,
+        user_id: new ObjectId(user_id)
+      })
+    )
     return { access_token, refresh_token }
+    
   }
 
   async login(user_id: string) {
     const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id)
+    //lưu refresh_token vào db
+    await databaseService.refreshTokens.insertOne (
+      new RefreshToken ({
+        token: refresh_token,
+        user_id: new ObjectId(user_id)
+      })
+    )
     return { access_token, refresh_token }
   }
   
