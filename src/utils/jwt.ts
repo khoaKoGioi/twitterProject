@@ -1,4 +1,4 @@
-import { tokenPayload } from './../models/requests/User.requests';
+import { tokenPayload } from './../models/requests/User.requests'
 import jwt from 'jsonwebtoken'
 //file này dùng để tạo access và refresh token
 import { config } from 'dotenv'
@@ -30,7 +30,7 @@ export const verifyToken = ({
   token: string
   secretOrPublicKey?: string
 }) => {
-  return new Promise((resolve, reject) => {
+  return new Promise<tokenPayload>((resolve, reject) => {
     jwt.verify(token, secretOrPublicKey, (error, decoded) => {
       if (error) throw reject(error)
       resolve(decoded as tokenPayload)
