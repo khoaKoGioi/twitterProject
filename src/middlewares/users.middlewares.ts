@@ -195,7 +195,7 @@ export const accessTokenValidator = validate(
           options: async (value: string, { req }) => {
             //value của Authorization là chuỗi "Bearer <access_token>"
             //ta sẽ tách chuỗi đó ra để lấy access_token bằng cách split
-            const accessToken = value.split(' ')[1] 
+            const accessToken = value.split(' ')[1]
             //nếu k có accessToken thì ném lỗi 401
             if (!accessToken) {
               //throw new Error(USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED)  //này trả ra 422(k hay)
@@ -231,76 +231,6 @@ export const accessTokenValidator = validate(
     ['headers']
   )
 )
-export const emailVerifyTokenValidator = validate(
-  checkSchema(
-    {
-      email_verify_token: {
-        trim: true,
-        custom: {
-          options: async (value: string, { req }) => {
-            //nếu k truyền lên email_verify_token thì báo lỗi
-            if(!value){
-              throw new ErrorWithStatus({
-                message: USERS_MESSAGES.EMAIL_VERIFY_TOKEN_IS_REQUIRED,
-                status: HTTP_STATUS.UNAUTHORIZED
-              })
-            }
-            try {
-              //verify email_verify_token để lấy decoded_email_verify_token
-              const decoded_email_verify_token = await verifyToken({
-                token: value,
-                secretOrPublicKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string
-              })
-              ;(req as Request).decoded_email_verify_token = decoded_email_verify_token
-              const user_id = decoded_email_verify_token.user_id
-              const user = await databaseService.users.findOne({
-                _id: new ObjectId(user_id)
-              })
-              //nếu mà k có thì user not found
-              if(!user) {
-                throw new ErrorWithStatus({
-                  message: USERS_MESSAGES.USER_NOT_FOUND,
-                  status: HTTP_STATUS.NOT_FOUND
-                })
-              }
-              //còn mà có user thì lưu lại
-              req.user = user
-              //nếu có user thì xem thử user này có bị banned không ?
-              if(user.verify == UserVerifyStatus.Banned){
-                throw new ErrorWithStatus({
-                  message: USERS_MESSAGES.USER_BANNED,
-                  status: HTTP_STATUS.FORBIDDEN //403
-                })
-              }
-              //nếu truyền k đúng với database thì báo lỗi
-              if(user.email_verify_token !== value){
-                throw new ErrorWithStatus({
-                  message: USERS_MESSAGES.EMAIL_VERIFY_TOKEN_NOT_MATCH,
-                  status: HTTP_STATUS.NOT_FOUND
-                })
-              }
-            } catch (error) {
-              //trong middleware này ta throw để lỗi về default error handler xử lý
-              if (error instanceof JsonWebTokenError) {
-                //nếu lỗi thuộc verify thì ta sẽ trả về lỗi này
-                throw new ErrorWithStatus({
-                  message: capitalize((error as JsonWebTokenError).message),
-                  //để báo lỗi tường minh hơn
-                  status: HTTP_STATUS.UNAUTHORIZED
-                })
-              }
-              //còn nếu không phải thì ta sẽ trả về lỗi do ta throw ở trên try
-              throw error // này là lỗi đã tạo trên try
-              //việc phân biệt lỗi này giúp server trả ra lỗi tường mình và cụ thể hơn
-            }
-            return true //nếu không có lỗi thì trả về true
-          }
-        }
-      }
-    },
-    ['body']
-  )
-)
 export const refreshTokenValidator = validate(
   checkSchema(
     {
@@ -333,6 +263,174 @@ export const refreshTokenValidator = validate(
               }
               //nếu có thì ta lưu decoded_refresh_token vào req để khi nào muốn biết ai gữi req thì dùng
               ;(req as Request).decoded_refresh_token = decoded_refresh_token
+            } catch (error) {
+              //trong middleware này ta throw để lỗi về default error handler xử lý
+              if (error instanceof JsonWebTokenError) {
+                //nếu lỗi thuộc verify thì ta sẽ trả về lỗi này
+                throw new ErrorWithStatus({
+                  message: capitalize((error as JsonWebTokenError).message),
+                  //để báo lỗi tường minh hơn
+                  status: HTTP_STATUS.UNAUTHORIZED
+                })
+              }
+              //còn nếu không phải thì ta sẽ trả về lỗi do ta throw ở trên try
+              throw error // này là lỗi đã tạo trên try
+              //việc phân biệt lỗi này giúp server trả ra lỗi tường mình và cụ thể hơn
+            }
+            return true //nếu không có lỗi thì trả về true
+          }
+        }
+      }
+    },
+    ['body']
+  )
+)
+export const emailVerifyTokenValidator = validate(
+  checkSchema(
+    {
+      email_verify_token: {
+        trim: true,
+        custom: {
+          options: async (value: string, { req }) => {
+            //nếu k truyền lên email_verify_token thì báo lỗi
+            if (!value) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGES.EMAIL_VERIFY_TOKEN_IS_REQUIRED,
+                status: HTTP_STATUS.UNAUTHORIZED
+              })
+            }
+            try {
+              //verify email_verify_token để lấy decoded_email_verify_token
+              const decoded_email_verify_token = await verifyToken({
+                token: value,
+                secretOrPublicKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string
+              })
+              ;(req as Request).decoded_email_verify_token = decoded_email_verify_token
+              const user_id = decoded_email_verify_token.user_id
+              const user = await databaseService.users.findOne({
+                _id: new ObjectId(user_id)
+              })
+              //nếu mà k có thì user not found
+              if (!user) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.USER_NOT_FOUND,
+                  status: HTTP_STATUS.NOT_FOUND
+                })
+              }
+              //còn mà có user thì lưu lại
+              req.user = user
+              //nếu có user thì xem thử user này có bị banned không ?
+              if (user.verify == UserVerifyStatus.Banned) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.USER_BANNED,
+                  status: HTTP_STATUS.FORBIDDEN //403
+                })
+              }
+              //nếu truyền k đúng với database thì báo lỗi
+              if (user.verify != UserVerifyStatus.Verified && user.email_verify_token !== value) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.EMAIL_VERIFY_TOKEN_NOT_MATCH,
+                  status: HTTP_STATUS.NOT_FOUND
+                })
+              }
+            } catch (error) {
+              //trong middleware này ta throw để lỗi về default error handler xử lý
+              if (error instanceof JsonWebTokenError) {
+                //nếu lỗi thuộc verify thì ta sẽ trả về lỗi này
+                throw new ErrorWithStatus({
+                  message: capitalize((error as JsonWebTokenError).message),
+                  //để báo lỗi tường minh hơn
+                  status: HTTP_STATUS.UNAUTHORIZED
+                })
+              }
+              //còn nếu không phải thì ta sẽ trả về lỗi do ta throw ở trên try
+              throw error // này là lỗi đã tạo trên try
+              //việc phân biệt lỗi này giúp server trả ra lỗi tường mình và cụ thể hơn
+            }
+            return true //nếu không có lỗi thì trả về true
+          }
+        }
+      }
+    },
+    ['body']
+  )
+)
+
+export const forgotPasswordValidator = validate(
+  
+  checkSchema({
+    email: {
+      notEmpty: {
+        errorMessage: USERS_MESSAGES.EMAIL_IS_REQUIRED
+      },
+      isEmail: {
+        errorMessage: USERS_MESSAGES.EMAIL_IS_INVALID
+      },
+      trim: true,
+      custom: {
+        options: async (value, { req }) => {
+          //tìm trong database xem có user nào sở hữu email = value của email người dùng gữi lên không
+          const user = await databaseService.users.findOne({
+            email: value
+          })
+          //nếu không tìm đc user thì nói user không tồn tại
+          //khỏi tiến vào controller nữa
+          if (!user) {
+            throw new ErrorWithStatus({
+              message: USERS_MESSAGES.USER_NOT_FOUND,
+              status: HTTP_STATUS.NOT_FOUND
+            }) //422
+          }
+          //đến đâu thì oke
+          req.user = user // lưu user mới tìm đc lại luôn, khi nào cần thì xài
+          return true
+        }
+      }
+    }
+  })
+)
+
+export const verifyForgotPasswordValidator = validate(
+  checkSchema(
+    {
+      forgot_password_token: {
+        trim: true,
+        custom: {
+          options: async (value: string, { req }) => {
+            //nếu k truyền lên email_verify_token thì báo lỗi
+            if (!value) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGES.FORGOT_PASSWORD_TOKEN_IS_REQUIRED,
+                status: HTTP_STATUS.UNAUTHORIZED
+              })
+            }
+            try {
+              //verify forgot_password_token để lấy decoded_forgot_password_token
+              const decoded_forgot_password_token = await verifyToken({
+                token: value,
+                secretOrPublicKey: process.env.JWT_SECRET_FORGOT_PASSWORD_TOKEN as string
+              })
+              ;(req as Request).decoded_forgot_password_token = decoded_forgot_password_token
+              const user_id = decoded_forgot_password_token.user_id
+              const user = await databaseService.users.findOne({
+                _id: new ObjectId(user_id)
+              })
+              //nếu mà k có thì user not found
+              if (!user) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.USER_NOT_FOUND,
+                  status: HTTP_STATUS.NOT_FOUND
+                })
+              }
+              //còn mà có user thì lưu lại
+              req.user = user
+              //nếu truyền k đúng với database thì báo lỗi
+              if (user.forgot_password_token !== value) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.FORGOT_PASSWORD_TOKEN_NOT_MATCH,
+                  status: HTTP_STATUS.NOT_FOUND
+                })
+              }
             } catch (error) {
               //trong middleware này ta throw để lỗi về default error handler xử lý
               if (error instanceof JsonWebTokenError) {
