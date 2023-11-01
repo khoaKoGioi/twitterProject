@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { accessTokenValidator, loginValidator, refreshTokenValidator, registerValidator } from '../middlewares/users.middlewares'
-import { loginController, logoutController, registerController } from '../controllers/users.controller'
+import { accessTokenValidator, emailVerifyTokenValidator, loginValidator, refreshTokenValidator, registerValidator } from '../middlewares/users.middlewares'
+import { emailVerifyController, loginController, logoutController, registerController } from '../controllers/users.controller'
 import { wrapAsync } from '../utils/handlers'
 const usersRouter = Router()
 
@@ -19,4 +19,10 @@ headers: {Authorization: 'Bearer <access_token>'}
 body: {refresh_token: string}
 */
 usersRouter.post('/logout', accessTokenValidator, refreshTokenValidator, wrapAsync(logoutController))
+
+/*
+des: verify email
+method: post
+*/
+usersRouter.post('/verify-email', emailVerifyTokenValidator, wrapAsync(emailVerifyController))
 export default usersRouter

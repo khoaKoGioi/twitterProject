@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb'
-import { TokenType } from '../constants/enums'
+import { TokenType, UserVerifyStatus } from '../constants/enums'
 import { RegisterRequestBody } from '../models/requests/User.requests'
 import RefreshToken from '../models/schemas/RefreshToken.schema'
 import User from '../models/schemas/User.schema'
@@ -15,14 +15,24 @@ class UsersService {
   private SignAccessToken(user_id: string) {
     return singToken({
       payload: { user_id, token_type: TokenType.AccessToken },
-      options: { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_IN }
+      options: { expiresIn: process.env.ACCESS_TOKEN_EXPIRE_IN },
+      privateKey: process.env.JWT_SECRET_ACCESS_TOKEN as string
     })
   }
 
   private SignRefreshToken(user_id: string) {
     return singToken({
       payload: { user_id, token_type: TokenType.RefreshToken },
-      options: { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN }
+      options: { expiresIn: process.env.REFRESH_TOKEN_EXPIRE_IN },
+      privateKey: process.env.JWT_SECRET_REFRESH_TOKEN as string
+    })
+  }
+
+  private signEmailVerifyToken(user_id: string) {
+    return singToken({
+      payload: { user_id, token_type: TokenType.AccessToken },
+      options: { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRE_IN },
+      privateKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string
     })
   }
 
@@ -37,16 +47,19 @@ class UsersService {
 
   async register(payload: RegisterRequestBody) {
     //payload: data
+    const user_id = new ObjectId()
+    const email_verify_token = await this.signEmailVerifyToken(user_id.toString())
     const result = await databaseService.users.insertOne(
       new User({
         ...payload, //destructuring trong RegisterRequestBody(name, email, pass, confirmed_pass, date)
+        _id: user_id,
+        email_verify_token,
         date_of_birth: new Date(payload.date_of_birth),
         password: hashPassword(payload.password) //mã hóa password
       })
     )
     //Lấy user_id từ user mới tạo
-    const user_id = result.insertedId.toString()
-    const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id)
+    const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id.toString())
     //lưu refresh token vào db
     await databaseService.refreshTokens.insertOne(
       new RefreshToken({
@@ -54,6 +67,8 @@ class UsersService {
         user_id: new ObjectId(user_id)
       })
     )
+    //gia lap gui email
+    console.log(email_verify_token)
     return { access_token, refresh_token }
   }
 
@@ -70,8 +85,36 @@ class UsersService {
   }
 
   async logout(refresh_token: string) {
-    await databaseService.refreshTokens.deleteOne({token: refresh_token})
-    return {message: USERS_MESSAGES.LOGOUT_SUCCESS}
+    await databaseService.refreshTokens.deleteOne({ token: refresh_token })
+    return { message: USERS_MESSAGES.LOGOUT_SUCCESS }
+  }
+
+  async verifyEmail(user_id: string) {
+    //cập nhật lại user
+    await databaseService.users.updateOne(
+      {
+        _id: new ObjectId(user_id)
+      },
+      [
+        {
+          $set: {
+            verify: UserVerifyStatus.Verified, //1
+            email_verify_token: '',
+            updated_at: '$$NOW'
+          }
+        }
+      ]
+    )
+    //tạo accessToken và refreshToken
+    const [access_token, refresh_token] = await this.SignAccessAndRefreshToken(user_id.toString())
+    //lưu refresh token vào db
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
+        token: refresh_token,
+        user_id: new ObjectId(user_id)
+      })
+    )
+    return { access_token, refresh_token }
   }
 }
 

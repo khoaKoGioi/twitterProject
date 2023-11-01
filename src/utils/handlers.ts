@@ -1,4 +1,6 @@
 import { NextFunction, Request, RequestHandler, Response } from 'express'
+import { tokenPayload } from '../models/requests/User.requests'
+import User from '../models/schemas/User.schema'
 
 //dùng để tạo try catch cho các hàm async, nghĩa là th nào có async thì bọc nó lại rồi thêm cho nó try catch
 //Nhận vào 1 hàm chưa có try catch
@@ -12,4 +14,12 @@ export const wrapAsync = (func: RequestHandler) => {
     }
   }
 }
-
+//thêm thuộc tính cho Request
+declare module 'express' {
+    interface Request {
+      user?: User
+      decoded_authorization?: tokenPayload
+      decoded_refresh_token?: tokenPayload
+      decoded_email_verify_token?: tokenPayload
+    }
+}

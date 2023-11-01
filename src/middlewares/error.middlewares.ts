@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express'
 import HTTP_STATUS from '../constants/httpStatus'
 import { omit } from 'lodash'
 import { ErrorWithStatus } from '../models/Errors'
-import { error } from 'console'
+
 
 export const defaultErrorHandle = (err: any, req: Request, res: Response, next: NextFunction) => {
   //đây là nơi mà tất cả lỗi trên hệ thống sẽ đồn về đây
