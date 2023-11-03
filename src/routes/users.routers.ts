@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { accessTokenValidator, emailVerifyTokenValidator, forgotPasswordValidator, loginValidator, refreshTokenValidator, registerValidator, verifyForgotPasswordValidator } from '../middlewares/users.middlewares'
-import { emailVerifyController, forgotPasswordController, loginController, logoutController, registerController, resendEmailVerifyController, verifyForgotPasswordController } from '../controllers/users.controller'
+import { accessTokenValidator, emailVerifyTokenValidator, forgotPasswordValidator, loginValidator, refreshTokenValidator, registerValidator, resetPasswordValidator, verifyForgotPasswordValidator } from '../middlewares/users.middlewares'
+import { emailVerifyController, forgotPasswordController, loginController, logoutController, registerController, resendEmailVerifyController, resetPasswordController, verifyForgotPasswordController } from '../controllers/users.controller'
 import { wrapAsync } from '../utils/handlers'
 const usersRouter = Router()
 
@@ -51,3 +51,16 @@ body: {
 */
 usersRouter.post('/verify-forgot--password', verifyForgotPasswordValidator, wrapAsync(verifyForgotPasswordController))
 export default usersRouter
+
+/*
+des: reset password
+path: '/reset-password'
+method: POST
+Header: không cần, vì  ngta quên mật khẩu rồi, thì sao mà đăng nhập để có authen đc
+body: {forgot_password_token: string, password: string, confirm_password: string}
+*/
+usersRouter.post(
+    "/reset-password",
+    resetPasswordValidator,
+    wrapAsync(resetPasswordController)
+  );
