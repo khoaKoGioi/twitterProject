@@ -11,6 +11,15 @@ import { ObjectId } from 'mongodb'
 import { USERS_MESSAGES } from '../constants/messages'
 import { UserVerifyStatus } from '../constants/enums'
 import HTTP_STATUS from '../constants/httpStatus'
+declare module 'express' {
+  interface Request {
+    user?: User
+    decoded_authorization?: tokenPayload
+    decoded_refresh_token?: tokenPayload
+    decoded_email_verify_token?: tokenPayload
+    decoded_forgot_password_token?: tokenPayload
+  }
+}
 export const loginController = async (req: Request<ParamsDictionary, any, loginReqBody>, res: Response) => {
   //nếu đăng nhập thành công (loginValidator) thì sẽ vào được đây
   const user = req.user as User //lấy user từ req
