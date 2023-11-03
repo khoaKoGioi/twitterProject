@@ -3,6 +3,8 @@ import express, { NextFunction, Request, Response } from 'express'
 import usersRouter from './routes/users.routers'
 import databaseService from './services/database.services'
 import { defaultErrorHandle } from './middlewares/error.middlewares'
+import User from './models/schemas/User.schema'
+import { tokenPayload } from './models/requests/User.requests'
 const app = express()
 app.use(express.json())
 const PORT = 3000

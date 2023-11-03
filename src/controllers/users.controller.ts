@@ -3,14 +3,22 @@ import { emailVerifyTokenValidator } from './../middlewares/users.middlewares'
 //nơi lưu các controllers liên quan đến users
 import { NextFunction, Request, Response } from 'express'
 import databaseService from '../services/database.services'
-import User from '../models/schemas/User.schema'
 import usersService from '../services/users.services'
 import { ParamsDictionary } from 'express-serve-static-core'
-import { RegisterRequestBody, loginReqBody, logoutReqBody, resetPasswordReqBody, tokenPayload } from '../models/requests/User.requests'
+import {
+  GetProfileReqParams,
+  RegisterRequestBody,
+  UpdateMeReqBody,
+  loginReqBody,
+  logoutReqBody,
+  resetPasswordReqBody,
+  tokenPayload
+} from '../models/requests/User.requests'
 import { ObjectId } from 'mongodb'
 import { USERS_MESSAGES } from '../constants/messages'
 import { UserVerifyStatus } from '../constants/enums'
 import HTTP_STATUS from '../constants/httpStatus'
+import User from '../models/schemas/User.schema'
 declare module 'express' {
   interface Request {
     user?: User
@@ -25,11 +33,11 @@ export const loginController = async (req: Request<ParamsDictionary, any, loginR
   const user = req.user as User //lấy user từ req
   const user_id = user._id as ObjectId //OnjectId trong mongdoDB
   //server phải tạo ra access và refresh token để đưa cho client
-  const result = await usersService.login({ user_id: user_id.toString(), verify: user.verify})
-    res.json({
-      message: USERS_MESSAGES.LOGIN_SUCCESS,
-      result
-    })
+  const result = await usersService.login({ user_id: user_id.toString(), verify: user.verify })
+  res.json({
+    message: USERS_MESSAGES.LOGIN_SUCCESS,
+    result
+  })
 }
 
 export const registerController = async (req: Request<ParamsDictionary, any, RegisterRequestBody>, res: Response) => {
@@ -114,24 +122,52 @@ export const verifyForgotPasswordController = async (req: Request, res: Response
   })
 }
 
-export const resetPasswordController = async (req: Request<ParamsDictionary, any, resetPasswordReqBody>, res: Response) => {
+export const resetPasswordController = async (
+  req: Request<ParamsDictionary, any, resetPasswordReqBody>,
+  res: Response
+) => {
   //nếu muốn đổi mật khẩu thì cần user_id và mật khẩu mới
   const { user_id } = req.decoded_forgot_password_token as tokenPayload
   const { password } = req.body
   //cập nhật
   const result = await usersService.resetPassword({ user_id, password })
-  return 
+  return
 }
 
 export const getMeController = async (req: Request, res: Response) => {
   //Muốn lấy profile của mình thì phải lấy usre_id của mình
   //middleware accessTokenValidator đã chạy rồi, nên ta có thể lấy đc user_id từ decoded_authorization
-  const { user_id } = req.decoded_authorization as tokenPayload;
+  const { user_id } = req.decoded_authorization as tokenPayload
   //tìm user thông qua user_id này và trả về user đó
   //truy cập vào database nên ta sẽ code ở user.services
-  const user = await usersService.getMe(user_id);
+  const user = await usersService.getMe(user_id)
   return res.json({
     message: USERS_MESSAGES.GET_ME_SUCCESS,
-    result: user,
+    result: user
+  })
+}
+export const updatemeController = async (req: Request<ParamsDictionary, any, UpdateMeReqBody>, res: Response) => {
+  //muốn update thì cần user_id và các thông tin cần update
+  //middleware accessTokenValidator đã chạy rồi, nên ta có thể lấy đc user_id từ decoded_authorization
+  const { user_id } = req.decoded_authorization as tokenPayload
+  //user_id để biết phải cập nhật ai
+  //lấy thông tin mới từ req.body
+  const { body } = req
+  //lấy các property mà client muốn cập nhật
+  //ta sẽ viết hàm updateMe trong user.services
+  //nhận vào user_id và body để cập nhật
+  const result = await usersService.updateMe(user_id, body)
+  return res.json({
+    message: USERS_MESSAGES.UPDATE_ME_SUCCESS, //meesage.ts thêm  UPDATE_ME_SUCCESS: 'Update me success'
+    result
+  })
+}
+export const getProfileController = async (req: Request<GetProfileReqParams>, res: Response) => {
+  //tìm user theo username
+  const { username } = req.params; //lấy username từ query params
+  const result = await usersService.getProfile(username);
+  return res.json({
+    message: USERS_MESSAGES.GET_PROFILE_SUCCESS, 
+    result,
   })
 }

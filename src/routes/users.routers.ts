@@ -1,7 +1,9 @@
+import { UpdateMeReqBody } from './../models/requests/User.requests';
 import { Router } from 'express'
-import { accessTokenValidator, emailVerifyTokenValidator, forgotPasswordValidator, loginValidator, refreshTokenValidator, registerValidator, resetPasswordValidator, verifyForgotPasswordValidator } from '../middlewares/users.middlewares'
-import { emailVerifyController, forgotPasswordController, getMeController, loginController, logoutController, registerController, resendEmailVerifyController, resetPasswordController, verifyForgotPasswordController } from '../controllers/users.controller'
+import { accessTokenValidator, emailVerifyTokenValidator, forgotPasswordValidator, loginValidator, refreshTokenValidator, registerValidator, resetPasswordValidator, updateMeValidator, verifiedUserValidator, verifyForgotPasswordValidator } from '../middlewares/users.middlewares'
+import { emailVerifyController, forgotPasswordController, getMeController, getProfileController, loginController, logoutController, registerController, resendEmailVerifyController, resetPasswordController, updatemeController, verifyForgotPasswordController } from '../controllers/users.controller'
 import { wrapAsync } from '../utils/handlers'
+import { filterMiddleware } from '../middlewares/common.middlewares';
 const usersRouter = Router()
 
 //controller
@@ -73,7 +75,26 @@ Header: {Authorization: Bearer <access_token>}
 body: {}
 */
 usersRouter.get("/me", accessTokenValidator, wrapAsync(getMeController))
+usersRouter.patch(
+    "/me", accessTokenValidator, verifiedUserValidator, filterMiddleware<UpdateMeReqBody>([
+        'name',
+    'date_of_birth',
+    'bio',
+    'location',
+    'website',
+    'avatar',
+    'username',
+    'cover_photo'
+    ]) , updateMeValidator, wrapAsync(updatemeController)
+)
 
+/*
+des: get profile của user khác bằng unsername
+path: '/:username'
+method: get
+không cần header vì, chưa đăng nhập cũng có thể xem
+*/
+usersRouter.get("/:username", wrapAsync(getProfileController))
 
 export default usersRouter
 

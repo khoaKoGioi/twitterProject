@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import { TokenType, UserVerifyStatus } from '../constants/enums'
-import { RegisterRequestBody } from '../models/requests/User.requests'
+import { RegisterRequestBody, UpdateMeReqBody } from '../models/requests/User.requests'
 import RefreshToken from '../models/schemas/RefreshToken.schema'
 import User from '../models/schemas/User.schema'
 import { hashPassword } from '../utils/crypto'
@@ -8,6 +8,8 @@ import { singToken } from '../utils/jwt'
 import databaseService from './database.services'
 import { config } from 'dotenv'
 import { USERS_MESSAGES } from '../constants/messages'
+import { ErrorWithStatus } from '../models/Errors'
+import HTTP_STATUS from '../constants/httpStatus'
 config()
 
 class UsersService {
@@ -64,6 +66,7 @@ class UsersService {
       new User({
         ...payload, //destructuring trong RegisterRequestBody(name, email, pass, confirmed_pass, date)
         _id: user_id,
+        username: `user${user_id.toString()}`,
         email_verify_token,
         date_of_birth: new Date(payload.date_of_birth),
         password: hashPassword(payload.password) //mã hóa password
@@ -205,6 +208,60 @@ class UsersService {
       }
     )
     return user // sẽ k có những thuộc tính nêu trên, tránh bị lộ thông tin
+  }
+
+  async updateMe(user_id: string, payload: UpdateMeReqBody) {
+    //payload là những gì người dùng đã gữi lên ở body request
+    //có vấn đề là người dùng gữi date_of_birth lên dưới dạng string iso8601
+    //nhưng ta cần gữi lên mongodb dưới dạng date
+    //nên
+    const _payload = payload.date_of_birth ? { ...payload, date_of_birth: new Date(payload.date_of_birth) } : payload
+    //mongo cho ta 2 lựa chọn update là updateOne và findOneAndUpdate
+    //findOneAndUpdate thì ngoài update nó còn return về document đã update
+    const user = await databaseService.users.findOneAndUpdate(
+      { _id: new ObjectId(user_id) },
+      [
+        {
+          $set: {
+            ..._payload,
+            updated_at: '$$NOW'
+          }
+        }
+      ],
+      {
+        returnDocument: 'after', //trả về document sau khi update, nếu k thì nó trả về document cũ
+        projection: {
+          //chặn các property k cần thiết
+          password: 0,
+          email_verify_token: 0,
+          forgot_password_token: 0
+        }
+      }
+    )
+    return user.value //đây là document sau khi update
+  }
+
+  async getProfile(username: string) {
+    const user = await databaseService.users.findOne(
+      { username: username },
+      {
+        projection: {
+          password: 0,
+          email_verify_token: 0,
+          forgot_password_token: 0,
+          verify: 0,
+          create_at: 0,
+          update_at: 0
+        }
+      }
+    )
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+    return user
   }
 }
 
