@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { accessTokenValidator, emailVerifyTokenValidator, forgotPasswordValidator, loginValidator, refreshTokenValidator, registerValidator, resetPasswordValidator, verifyForgotPasswordValidator } from '../middlewares/users.middlewares'
-import { emailVerifyController, forgotPasswordController, loginController, logoutController, registerController, resendEmailVerifyController, resetPasswordController, verifyForgotPasswordController } from '../controllers/users.controller'
+import { emailVerifyController, forgotPasswordController, getMeController, loginController, logoutController, registerController, resendEmailVerifyController, resetPasswordController, verifyForgotPasswordController } from '../controllers/users.controller'
 import { wrapAsync } from '../utils/handlers'
 const usersRouter = Router()
 
@@ -50,7 +50,6 @@ body: {
 }
 */
 usersRouter.post('/verify-forgot--password', verifyForgotPasswordValidator, wrapAsync(verifyForgotPasswordController))
-export default usersRouter
 
 /*
 des: reset password
@@ -62,5 +61,20 @@ body: {forgot_password_token: string, password: string, confirm_password: string
 usersRouter.post(
     "/reset-password",
     resetPasswordValidator,
+    verifyForgotPasswordValidator,
     wrapAsync(resetPasswordController)
-  );
+)
+
+/*
+des: get profile của user
+path: '/me'
+method: get
+Header: {Authorization: Bearer <access_token>}
+body: {}
+*/
+usersRouter.get("/me", accessTokenValidator, wrapAsync(getMeController))
+
+
+export default usersRouter
+
+
