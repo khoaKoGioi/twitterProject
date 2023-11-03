@@ -16,11 +16,11 @@ export const loginController = async (req: Request<ParamsDictionary, any, loginR
   const user = req.user as User //lấy user từ req
   const user_id = user._id as ObjectId //OnjectId trong mongdoDB
   //server phải tạo ra access và refresh token để đưa cho client
-  const result = await usersService.login(user_id.toString())
-  return res.json({
-    message: 'login successfully',
-    result
-  })
+  const result = await usersService.login({ user_id: user_id.toString(), verify: user.verify})
+    res.json({
+      message: USERS_MESSAGES.LOGIN_SUCCESS,
+      result
+    })
 }
 
 export const registerController = async (req: Request<ParamsDictionary, any, RegisterRequestBody>, res: Response) => {
@@ -90,9 +90,9 @@ export const resendEmailVerifyController = async (req: Request, res: Response) =
 
 export const forgotPasswordController = async (req: Request, res: Response) => {
   //lấy user_id từ req.user
-  const { _id } = req.user as User
+  const { _id, verify } = req.user as User
   //tiến hành update lại forgot_password_token
-  const result = await usersService.forgotPassword((_id as ObjectId).toString())
+  const result = await usersService.forgotPassword({ user_id: (_id as ObjectId).toString(), verify })
   return res.json(result)
 }
 export const verifyForgotPasswordController = async (req: Request, res: Response) => {
